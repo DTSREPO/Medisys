@@ -1,60 +1,179 @@
-department		pct	maximumApptNo	totalapptno 	numberofDoctor	
-internal medicine 	50			30		1		= (30x50%)x1 = 15
-rheumatology			12		20		2		= 12x2	= 24
+department			pct		maximumApptNo	totalapptno 	numberofDoctor
+-----------			---		-------------	-----------		--------------
+internal medicine 	50			30				1		= 	(30x50%)x1 = 15
+rheumatology		12			20				2		= 	12x2	   = 24
 
-/* Patient Information */
+/* 1. Patient Information */
 create table t03203
 (
-	T_UPD_DATE DATE, 
-	T_UPD_USER VARCHAR2(4), 
-	T_ENTRY_DATE DATE, 
-	T_ENTRY_USER VARCHAR2(4),
-	T_PAT_NO VARCHAR2(10),
-	T_PAT_LANG2_NAME VARCHAR2(200),
-	T_PAT_LANG1_NAME VARCHAR2(200),
-    T_FATHER_NAME VARCHAR2(300),
-    T_MOTHER_NAME VARCHAR2(300),
-	T_BIRTH_DATE DATE, 
-	T_NTNLTY_ID VARCHAR2(20),  
-	T_MOBILE_NO VARCHAR2(15), 
-	T_POSTAL_CODE VARCHAR2(6), 
-	T_ADDRESS1 VARCHAR2(200), 
-	T_ADDRESS2 VARCHAR2(200), 
-	T_RLGN_CODE VARCHAR2(1), 
-	T_GENDER VARCHAR2(1), 
-	T_OP_EPISODES NUMBER(4,0), 
-	T_SPONSR_CODE VARCHAR2(4), 
-	T_PAYOR_Y VARCHAR2(1), 
-	T_BALANCE_AMOUNT NUMBER(10,2), 
-	T_X_FOREIGN_MR VARCHAR2(8),   
-	T_X_MSG_FLAG VARCHAR2(1), 
-	T_CNCL_NTNLTY_ID VARCHAR2(10), 
-	T_POBOX_NO VARCHAR2(20), 
-	T_EMAIL_ID VARCHAR2(30),  
-	T_ER_RLTN_CODE VARCHAR2(2), 
-	T_ER_MOBILE VARCHAR2(15), 
-	T_HOSP_CODE VARCHAR2(5), 
-	T_BADGE_NO VARCHAR2(10), 
-	T_DISTRICT VARCHAR2(3), 
-	T_SUB_DISTRICT VARCHAR2(3)
+	T_UPD_DATE 			DATE, 
+	T_UPD_USER 			VARCHAR2(4), 
+	T_ENTRY_DATE 		DATE, 
+	T_ENTRY_USER 		VARCHAR2(4),
+	T_PAT_NO 			VARCHAR2(10),
+	T_PAT_LANG2_NAME 	VARCHAR2(200),
+	T_PAT_LANG1_NAME 	VARCHAR2(200),
+    T_FATHER_NAME 		VARCHAR2(300),
+    T_MOTHER_NAME 		VARCHAR2(300),
+	T_BIRTH_DATE 		DATE, 
+	T_NTNLTY_ID 		VARCHAR2(20),  
+	T_MOBILE_NO 		VARCHAR2(15), 
+	T_POSTAL_CODE 		VARCHAR2(6), 
+	T_ADDRESS1 			VARCHAR2(200), 
+	T_ADDRESS2 			VARCHAR2(200), 
+	T_RLGN_CODE 		VARCHAR2(1), 
+	T_GENDER 			VARCHAR2(1), 
+	T_OP_EPISODES 		NUMBER(4,0), 
+	T_SPONSR_CODE 		VARCHAR2(4), 
+	T_PAYOR_Y 			VARCHAR2(1), 
+	T_BALANCE_AMOUNT 	NUMBER(10,2), 
+	T_X_FOREIGN_MR 		VARCHAR2(8),   
+	T_X_MSG_FLAG 		VARCHAR2(1), 
+	T_CNCL_NTNLTY_ID 	VARCHAR2(10), 
+	T_POBOX_NO 			VARCHAR2(20), 
+	T_EMAIL_ID 			VARCHAR2(30),  
+	T_ER_RLTN_CODE 		VARCHAR2(2), 
+	T_ER_MOBILE 		VARCHAR2(15), 
+	T_HOSP_CODE 		VARCHAR2(5), 
+	T_BADGE_NO 			VARCHAR2(10), 
+	T_DISTRICT 			VARCHAR2(3), 
+	T_SUB_DISTRICT 		VARCHAR2(3)
 );
 
-/* to store department's number of appointment that will be available for online appointment 
-based on morining or evening shift session
+
+======= AFTER SUCCESSFUL APPOINTMENT ========
+/*
+to keep the detail data of a successfull appointment, data will come from table t07207 throgu DB trigger,
+and after successfull inserting-data will be deleted from t07207 but no deduction will be done from table t07204
 */
+
+create table t07203
+(
+	T_UPD_DATE                	DATE   ,       
+	T_UPD_USER                	VARCHAR2(4),
+	t_transaction_id	  		varchar2(10),
+	t_payment_trnsctn_id 		varchar2(20),
+	T_APPT_NO                 	NUMBER(10)  , 
+	t_dept_code             	VARCHAR2(5) ,  
+	t_morining_evening_ssn_flag varchar2(1),    
+	T_dept_DOC_CODE         	VARCHAR2(20),  
+	T_APPT_DATE               	DATE ,
+	T_APPT_TIME               	NUMBER(9) ,             
+	T_APPT_TYPE               	VARCHAR2(1) ,  
+	T_PAT_NO                  	VARCHAR2(12) ,  
+	T_PAT_PHONE               	VARCHAR2(11) ,     
+	T_WALKIN_CANCEL_FLAG      	VARCHAR2(1) ,
+	T_ARRIVAL_STATUS          	VARCHAR2(1) ,  
+	T_ARRIVAL_NO              	NUMBER(9) ,   
+	T_ARRIVAL_TIME            	NUMBER(9)  ,               
+	T_ARRIVAL_DATE            	DATE   ,       
+	T_ARRIVAL_USER            	VARCHAR2(4)  , 
+	T_VISIT_NO                	NUMBER(4) ,    
+	T_MSG_FLAG              	VARCHAR2(1)
+);
+
+
+/*
+to store updated summary data to show appointment date, department, maximum appointment booked and session.
+for any unsuccessful payment transaction; data (t_total_online_apptno) will be deducted from here; otherwise it will be added always
+*/
+create table t07204
+(
+	t_appt_date					date,
+	t_dept_code					varchar2(6),
+	t_total_online_apptno		number(5),
+	t_online_max_apptno			number(5),
+	t_morining_evening_ssn_flag varchar2(1),
+	t_morning_collection_amnt	number(8),
+	t_evening_collection_amnt	number(8)
+);
+
+
+/*
+to keep the initial setup value for system transaction id and appointment id;
+it will be always updated with the t_transaction_init_value + 1 and t_appt_no_init_value + 1.
+system transaction id will be concated with the t_transaction_init_char || t_transaction_init_value
+*/
+create table t07205
+(
+	T_ENTRY_DATE                DATE   ,      
+	T_ENTRY_USER                VARCHAR2(5) ,
+	T_UPD_DATE                	DATE   ,       
+	T_UPD_USER                	VARCHAR2(5) ,   
+	t_transaction_init_value 	number(10),
+	t_transaction_init_char 	varchar2(2) default 'A',
+	t_appt_no_init_value		number(9)
+);
+
+
+/*
+crucial table for transaction interval data.
+data will come here through successful Captcha verification.
+t_appt_intrvl_end_tm will be t_appt_intrvl_strt_tm + t07202.t_online_appt_interval_time.
+one process will be always in running mode to check any transaction that is not done before t_appt_intrvl_end_tm;
+if it finds any transaction like this than it will update the related data from t07207.t_late_transaction_payment_flag and will delete from here.
+*/
+
+create table t07206
+(
+	t_transaction_id 		varchar2(10),
+	t_appt_no				number(9),
+	t_appt_date				date,
+	t_appt_intrvl_strt_tm 	TIMESTAMP(0),
+	t_appt_intrvl_end_tm 	TIMESTAMP(0)
+);
+
+
+/*
+webservice will update this transaction data based on t_transaction_id and t_appt_no (without t_late_transaction_payment_flag);
+data will be inserted into t07203 table; deleted from t07206
+*/
+create table t07207
+(
+	t_transaction_id 			varchar2(10),
+	t_appt_no					number(9),
+	t_payment_trnsctn_id 		varchar2(20), 	/* it's comes from easypayway */
+	t_payment_trnsctn_date 		date,			/* it's comes from easypayway */
+	t_payment_trnsctn_time 		number(5), 		/* it's comes from easypayway */
+	t_late_trans_payment_flag 	varchar2(1) 	/* it's comes from easypayway */
+);
+
+/*
+data will come (insert) here after pressing Next Step of Appointment Form. 
+if user is unable to provide captcha code within 60 second than Resent button will be visible;
+maximum 2 times (take data from t07202:t_captcha_interval_time	,t_captcha_max_resent_no )  will be resent; after successfull Verification 
+TransactionID and AppointmentID data will be inserted to table t07206 and t07207 with other relevant data.
+Then data will be deleted from this table for this mobile no.
+*/
+create table t07212
+(
+	t_mobile_no 		varchar2(15),
+	t_captcha_code		varchar2(4),
+	t_resent_number		number(1)
+	T_ENTRY_DATE		timestamp(0)
+);
+
+
+
+
+
+
+================ SETUP TABLE ================
+
+/* to store department's number of appointment that will be available for online appointment based on morining or evening shift session */
 create table t07201
 (
-T_ENTRY_DATE                DATE   ,      
-T_ENTRY_USER                VARCHAR2(5) ,
-T_UPD_DATE                DATE   ,       
-T_UPD_USER                VARCHAR2(5) ,   
-t_dept_code	varchar2(6),
-t_total_online_apptno	number(5),
-t_online_appt_pct	number(5),
-t_online_max_apptno	number(5),
-t_morining_evening_ssn_flag varchar2(1),
-t_numberof_doctor	number(3),
-t_active_flag varchar2(1)
+	T_ENTRY_DATE                DATE   ,      
+	T_ENTRY_USER                VARCHAR2(5) ,
+	T_UPD_DATE                	DATE   ,       
+	T_UPD_USER                	VARCHAR2(5) ,   
+	t_dept_code					varchar2(6),
+	t_total_online_apptno		number(5),
+	t_online_appt_pct			number(5),
+	t_online_max_apptno			number(5),
+	t_morining_evening_ssn_flag varchar2(1),
+	t_numberof_doctor			number(3),
+	t_active_flag 				varchar2(1)
 );
 
 
@@ -78,121 +197,17 @@ create table t07202
 );
 
 
-/*
-to keep the detail data of a successfull appointment,
-data will come from table t07207 throgu DB trigger,
-and after successfull inserting-data will be deleted from t07207 but 
-no deduction will be done from table t07204
-*/
-create table t07203
-(
-T_UPD_DATE                DATE   ,       
-T_UPD_USER                VARCHAR2(4),
-t_transaction_id	  varchar2(10),
-t_payment_trnsctn_id varchar2(20),
-T_APPT_NO                 NUMBER(10)  , 
-t_dept_code             VARCHAR2(5) ,  
-t_morining_evening_ssn_flag varchar2(1),    
-T_dept_DOC_CODE         VARCHAR2(20),  
-T_APPT_DATE               DATE ,
-T_APPT_TIME               NUMBER(9) ,             
-T_APPT_TYPE               VARCHAR2(1) ,  
-T_PAT_NO                  VARCHAR2(12) ,  
-T_PAT_PHONE               VARCHAR2(11) ,     
-T_WALKIN_CANCEL_FLAG      VARCHAR2(1) ,
-T_ARRIVAL_STATUS          VARCHAR2(1) ,  
-T_ARRIVAL_NO              NUMBER(9) ,   
-T_ARRIVAL_TIME            NUMBER(9)  ,               
-T_ARRIVAL_DATE            DATE   ,       
-T_ARRIVAL_USER            VARCHAR2(4)  , 
-T_VISIT_NO                NUMBER(4) ,    
-T_MSG_FLAG              VARCHAR2(1)
-);
-
-
-/*
-to store updated summary data to show appointment date, department, maximum appointment booked and session.
-for any unsuccessful payment transaction; data (t_total_online_apptno) will be deducted from here; otherwise it will be added always
-*/
-create table t07204
-(
-t_appt_date	date,
-t_dept_code	varchar2(6),
-t_total_online_apptno	number(5),
-t_online_max_apptno	number(5),
-t_morining_evening_ssn_flag varchar2(1),
-t_morning_collection_amnt	number(8),
-t_evening_collection_amnt	number(8)
-);
-
-
-/*
-to keep the initial setup value for system transaction id and appointment id;
-it will be always updated with the t_transaction_init_value + 1 and t_appt_no_init_value + 1.
-system transaction id will be concated with the t_transaction_init_char || t_transaction_init_value
-*/
-create table t07205
-(
-T_ENTRY_DATE                DATE   ,      
-T_ENTRY_USER                VARCHAR2(5) ,
-T_UPD_DATE                DATE   ,       
-T_UPD_USER                VARCHAR2(5) ,   
-t_transaction_init_value number(10),
-t_transaction_init_char varchar2(2) default 'A',
-t_appt_no_init_value	number(9)
-);
-
-
-
-
-/*
-crucial table for transaction interval data.
-data will come here through successful Captcha verification.
-t_appt_intrvl_end_tm will be t_appt_intrvl_strt_tm + t07002.t_online_appt_interval_time.
-one process will be always in running mode to check any transaction that is not done before t_appt_intrvl_end_tm;
-if it finds any transaction like this than it will update the related data from t07207.t_late_transaction_payment_flag and will delete from here.
- 
-*/
-create table t07206
-(
-t_transaction_id varchar2(10),
-t_appt_no	number(9),
-t_appt_date	date,
-t_appt_intrvl_strt_tm 	number(5),
-t_appt_intrvl_end_tm 	number(5)
-);
-
-
-/*
-webservice will update this transaction data based on t_transaction_id and t_appt_no (without t_late_transaction_payment_flag);
-data will be inserted into t07203 table; deleted from t07206
-*/
-create table t07207
-(
-t_transaction_id varchar2(10),
-t_appt_no	number(9),
-t_payment_trnsctn_id varchar2(20),
-t_payment_trnsctn_date date,
-t_payment_trnsctn_time number(5),
-t_late_trans_payment_flag varchar2(1)
-);
-
-
-/*
-to store those date not to show in the appoint date
-*/
+/* to store those date not to show in the appoint date */
 create table t07208
 (
-T_ENTRY_DATE                DATE   ,      
-T_ENTRY_USER                VARCHAR2(5) ,
-T_UPD_DATE                DATE   ,       
-T_UPD_USER                VARCHAR2(5) ,  
-t_year	number(4),
-t_month	number(2),
-t_appt_off_date	date
+	T_ENTRY_DATE                DATE   ,      
+	T_ENTRY_USER                VARCHAR2(5) ,
+	T_UPD_DATE                	DATE   ,       
+	T_UPD_USER                	VARCHAR2(5) ,  
+	t_year	number(4),
+	t_month	number(2),
+	t_appt_off_date	date
 );
-
-
 
 
 /*
@@ -200,66 +215,44 @@ to store department information
 */
 create table t07209
 (
-T_ENTRY_DATE                DATE   ,      
-T_ENTRY_USER                VARCHAR2(5) ,
-T_UPD_DATE                DATE   ,       
-T_UPD_USER                VARCHAR2(5) ,   
-t_dept_code             VARCHAR2(5) , 
-t_dept_lang2_name	varchar2(200),
-t_dept_lang1_name	varchar2(200),
-t_active_flag	varchar2(1)
+	T_ENTRY_DATE                DATE   ,      
+	T_ENTRY_USER                VARCHAR2(5) ,
+	T_UPD_DATE                	DATE   ,       
+	T_UPD_USER                	VARCHAR2(5) ,   
+	t_dept_code             	VARCHAR2(5) , 
+	t_dept_lang2_name			varchar2(200),
+	t_dept_lang1_name			varchar2(200),
+	t_active_flag				varchar2(1)
 );
 
 
-
-/*
-to show help line number in the form and report for any necessity
-*/
+/* to show help line number in the form and report for any necessity */
 create table t07210
 (
-T_ENTRY_DATE                DATE   ,      
-T_ENTRY_USER                VARCHAR2(5) ,
-T_UPD_DATE                DATE   ,       
-T_UPD_USER                VARCHAR2(5) ,   
-t_helpline_id		number(3),
-t_helpline_number	varchar2(15),
-t_active_flag	varchar2(1)
+	T_ENTRY_DATE                DATE   ,      
+	T_ENTRY_USER                VARCHAR2(5) ,
+	T_UPD_DATE                	DATE   ,       
+	T_UPD_USER                	VARCHAR2(5) ,   
+	t_helpline_id				number(3),
+	t_helpline_number			varchar2(15),
+	t_active_flag				varchar2(1)
 );
 
 
-
-/*
-form related message data will be stored here. t_message_id will be system generated
-*/
+/* form related message data will be stored here. t_message_id will be system generated */
 
 create table t07211
 (
-T_ENTRY_DATE                DATE   ,      
-T_ENTRY_USER                VARCHAR2(5) ,
-T_UPD_DATE                DATE   ,       
-T_UPD_USER                VARCHAR2(5) ,   
-t_message_id		number(3),
-t_message_ojbective	varchar2(200),
-t_message_lang2_body	varchar2(400),
-t_message_lang1_body	varchar2(400),
-t_active_flag	varchar2(1)
+	T_ENTRY_DATE                DATE   ,      
+	T_ENTRY_USER                VARCHAR2(5) ,
+	T_UPD_DATE                	DATE   ,       
+	T_UPD_USER                	VARCHAR2(5) ,   
+	t_message_id				number(3),
+	t_message_ojbective			varchar2(200),
+	t_message_lang2_body		varchar2(400),
+	t_message_lang1_body		varchar2(400),
+	t_active_flag				varchar2(1)
 );
-
-
-/*
-data will come (insert) here after pressing Next Step of Appointment Form.
-if user is unable to provide captcha code within 45 second than Resent button will be visible;
-maximum 2 times (take data from t07202:t_captcha_interval_time	,t_captcha_max_resent_no )  will be resent; after successfull Verification 
-TransactionID and AppointmentID data will be inserted to table t07206 and t07207 with other relevant data.
-Then data will be deleted from this table for this mobile no.
-*/
-create table t07212
-(
-t_mobile_no varchar2(15),
-t_captcha_code	varchar2(4),
-t_resent_number	number(1)
-);
-
 
 
 /* Item Label */
