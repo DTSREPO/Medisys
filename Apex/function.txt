@@ -1,0 +1,33 @@
+create or replace function calculate_birthday(year  number, month number,  day number) return date
+   is
+   v_total_days number;
+   v_months number;
+   v_dob date;
+   v_bdate date;
+   v_return_date varchar2(40);
+   begin    
+        v_months := nvl(year*12,0) + nvl(month,0);
+        v_dob := add_months(trunc(sysdate), - (v_months));
+        v_dob := v_dob - nvl(day,0);
+   return(v_dob);
+   exception
+   when others then
+   return (null);
+end;
+
+
+create or replace function get_item_label (p_item_name in varchar2, p_lang in varchar2)
+    return varchar2
+  is
+    v_item_label VARCHAR2(300):='Label';
+  begin
+      IF P_LANG='EN' THEN
+        select T_LANG2_LABEL into v_item_label from t07213 where upper(T_OBJECT_NAME) =  upper(p_item_name);
+      ELSE
+        select T_LANG1_LABEL into v_item_label from t07213 where upper(T_OBJECT_NAME) =  upper(p_item_name);
+      END IF;
+      return v_item_label;
+  exception when OTHERS then
+      select pi.label into v_item_label from apex_application_page_items pi where pi.application_id = v('APP_ID') and pi.page_id = v('APP_PAGE_ID') and pi.item_name = p_item_name;
+      return v_item_label;
+  end get_item_label;

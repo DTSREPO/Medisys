@@ -1,0 +1,118 @@
+create or replace PROCEDURE APPT_MOB_CAPTCHA_PROC (
+							P_MOB_NO IN VARCHAR2,
+							P_CAPTCHA_CODE IN VARCHAR2,
+							P_DATE IN TIMESTAMP
+						  ) AS
+V_CNT NUMBER(1);
+V_RESNT NUMBER(1);
+BEGIN
+    SELECT COUNT(*) INTO V_CNT FROM T07212 WHERE T_MOBILE_NO=P_MOB_NO;
+    SELECT NVL(MAX(T_RESENT_NUMBER),0)+1 INTO V_RESNT FROM T07212 WHERE T_MOBILE_NO=P_MOB_NO;
+    IF V_CNT=0 THEN
+        INSERT INTO T07212(T_MOBILE_NO, T_CAPTCHA_CODE, T_RESENT_NUMBER, T_ENTRY_DATE) VALUES(P_MOB_NO, P_CAPTCHA_CODE, V_RESNT, P_DATE);
+    ELSE
+        UPDATE T07212
+        SET T_MOBILE_NO=P_MOB_NO,
+            T_CAPTCHA_CODE=P_CAPTCHA_CODE,
+            T_RESENT_NUMBER=V_RESNT,
+            T_ENTRY_DATE=P_DATE
+        WHERE T_MOBILE_NO=P_MOB_NO AND TRUNC(T_ENTRY_DATE)=TRUNC(P_DATE);
+    END IF;
+END;
+
+
+create or replace PROCEDURE APPT_PAT_SEQ AS
+PAT_NO VARCHAR2(10);
+BEGIN
+  SELECT NVL(PAT_SEQ_NO,0) + 1
+  INTO   PAT_NO
+  FROM   T_PAT_SEQUENCE
+  FOR    update of 
+  PAT_SEQ_NO, AMEND_DATE;
+  UPDATE T_PAT_SEQUENCE
+  set    PAT_SEQ_NO= PAT_NO ,
+  AMEND_DATE= trunc(sysdate);
+END;
+
+
+create or replace PROCEDURE APPT_TRANS_NO AS
+  TRANS_NO varchar2(8);
+  INIT_CHAR varchar2(1);
+  APPT_NO varchar2(8);
+begin
+  SELECT NVL(T_TRANSACTION_INIT_VALUE,0) + 1
+  INTO   TRANS_NO
+  FROM   T07205
+  FOR    update of 
+  T_TRANSACTION_INIT_VALUE, T_ENTRY_DATE;
+  UPDATE T07205
+  set    T_TRANSACTION_INIT_VALUE= TRANS_NO ,
+  T_ENTRY_DATE= trunc(sysdate);
+
+  SELECT NVL(T_APPT_NO_INIT_VALUE,0) + 1
+  INTO   APPT_NO
+  FROM   T07205
+  FOR    update of 
+  T_APPT_NO_INIT_VALUE, T_ENTRY_DATE;
+  UPDATE T07205
+  set    T_APPT_NO_INIT_VALUE= APPT_NO,
+  T_ENTRY_DATE= trunc(sysdate);
+end;
+
+
+
+create or replace procedure pat_info_insert_proc (
+                                                  P_ENTRY_DATE    DATE,
+		                                          P_PAT_NAME      VARCHAR2,
+                                                  P_FATHER_NAME   VARCHAR2,
+                                                  P_MOTHER_NAME   VARCHAR2,
+                                                  P_DOB           DATE,
+						                          P_GENDER        VARCHAR2,
+                                                  P_MOB_NO        VARCHAR2											  
+                                                  )
+AS 
+    V_PAT_NO   VARCHAR2(10);
+    V_CNT      NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO V_CNT FROM T03203 WHERE T_MOBILE_NO= P_MOB_NO;
+	--SELECT NVL(MAX(T_PAT_NO),0)+1 INTO V_PAT_NO FROM T03203;
+    
+    SELECT NVL(MAX(PAT_SEQ_NO),0)+1 INTO V_PAT_NO FROM T_PAT_SEQUENCE;
+
+	
+	IF V_CNT=0 THEN
+       INSERT INTO T03203(
+               T_ENTRY_DATE,
+               T_PAT_NO,
+               T_PAT_LANG2_NAME,
+               T_FATHER_NAME,
+               T_MOTHER_NAME,
+               T_BIRTH_DATE,
+               T_GENDER,
+               T_MOBILE_NO
+              ) 
+		VALUES(
+               P_ENTRY_DATE,
+               V_PAT_NO,
+               P_PAT_NAME,
+               P_FATHER_NAME,
+               P_MOTHER_NAME,
+               P_DOB,
+               P_GENDER,
+               P_MOB_NO
+              );
+	ELSE
+        UPDATE T03203
+        SET 
+		    T_PAT_LANG2_NAME=P_PAT_NAME,
+		    T_FATHER_NAME=P_FATHER_NAME,
+		    T_MOTHER_NAME=P_MOTHER_NAME,
+		    T_BIRTH_DATE=P_DOB,
+		    T_GENDER=P_GENDER,
+		    T_MOBILE_NO=P_MOB_NO,
+            T_ENTRY_DATE=P_ENTRY_DATE
+        WHERE T_MOBILE_NO=P_MOB_NO AND TRUNC(T_ENTRY_DATE)=TRUNC(P_ENTRY_DATE);
+     END IF;
+     APPT_PAT_SEQ;
+END;
+
