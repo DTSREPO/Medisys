@@ -27,7 +27,7 @@ prompt APPLICATION 110 - Online Appointment
 -- Application Export:
 --   Application:     110
 --   Name:            Online Appointment
---   Date and Time:   16:20 Thursday August 3, 2017
+--   Date and Time:   17:54 Thursday August 3, 2017
 --   Exported By:     ADMIN
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -115,7 +115,7 @@ wwv_flow_api.create_flow(
 ,p_csv_encoding=>'Y'
 ,p_auto_time_zone=>'Y'
 ,p_last_updated_by=>'ADMIN'
-,p_last_upd_yyyymmddhh24miss=>'20170803152327'
+,p_last_upd_yyyymmddhh24miss=>'20170803174541'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_files_version=>3
 ,p_ui_type_name => null
@@ -17675,7 +17675,7 @@ wwv_flow_api.create_page(
 ,p_cache_mode=>'NOCACHE'
 ,p_help_text=>'No help is available for this page.'
 ,p_last_updated_by=>'ADMIN'
-,p_last_upd_yyyymmddhh24miss=>'20170803152327'
+,p_last_upd_yyyymmddhh24miss=>'20170803174541'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(19800893711968758)
@@ -18043,15 +18043,31 @@ wwv_flow_api.create_page_item(
 ,p_lov=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'DECLARE',
 '    V_QUERY VARCHAR2(500);',
+'    V_DAY NUMBER;',
 'BEGIN',
+'SELECT T_ONLINE_APPTDAY_TO_SHOW INTO V_DAY FROM T07202;',
 '    IF :P0_LANG=''EN'' THEN',
-'        V_QUERY:=''select to_char(sysdate+level, ''''DD-MM-YYYY'''') as LABEL, sysdate+level AS VALUE from dual WHERE to_char(sysdate+level, ''''DD-MM-YYYY'''') NOT IN TO_CHAR(SYSDATE+1,''''DD-MM-YYYY'''') connect by level <= 3 ORDER BY 1'';',
+'        V_QUERY:=''SELECT DLABEL, VALUE FROM (',
+'select DLABEL, VALUE from (',
+'select to_char(sysdate+level, ''''DD-MM-YYYY'''') as DLABEL,  to_char(sysdate+level, ''''DD-MM-YYYY'''') AS VALUE from dual ',
+'WHERE to_char(sysdate+level, ''''DD-MM-YYYY'''') NOT IN TO_CHAR(SYSDATE-1,''''DD-MM-YYYY'''')   connect by level <=5',
+')',
+'where DLABEL not in (select TO_CHAR(T_APPT_OFF_DATE,''''DD-MM-YYYY'''') from t07208 )',
+'AND rownum <=5 order by  DLABEL ASC',
+') WHERE rownum <=''||V_DAY||'''';',
 '    ELSE',
-'        V_QUERY:=''select TRANSLATE(to_char(sysdate+level, ''''DD-MM-YYYY''''),''''1234567890'''',''''১২৩৪৫৬৭৮৯০'''') as LABEL, sysdate+level AS VALUE from dual  WHERE to_char(sysdate+level, ''''DD-MM-YYYY'''') NOT IN TO_CHAR(SYSDATE+1,''''DD-MM-YYYY'''') connect by leve'
-||'l <= 3 ORDER BY 1'';',
+'        V_QUERY:=''SELECT TRANSLATE(DLABEL,''''1234567890'''',''''১২৩৪৫৬৭৮৯০'''') LABEL, VALUE FROM (',
+'select DLABEL, VALUE from (',
+'select to_char(sysdate+level, ''''DD-MM-YYYY'''') as DLABEL,  to_char(sysdate+level, ''''DD-MM-YYYY'''') AS VALUE from dual ',
+'WHERE to_char(sysdate+level, ''''DD-MM-YYYY'''') NOT IN TO_CHAR(SYSDATE-1,''''DD-MM-YYYY'''')   connect by level <=5',
+')',
+'where DLABEL not in (select TO_CHAR(T_APPT_OFF_DATE,''''DD-MM-YYYY'''') from t07208 )',
+'AND rownum <=5 order by  DLABEL ASC',
+') WHERE rownum <=''||V_DAY||'''';',
 '    END IF;',
 '    RETURN V_QUERY;',
-'END;'))
+'END;',
+''))
 ,p_lov_display_null=>'YES'
 ,p_tag_attributes=>'style="width:150px;"'
 ,p_colspan=>5
